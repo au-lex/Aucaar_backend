@@ -7,6 +7,8 @@ export interface IUser extends Document {
   email: string;
   password: string;
   isVerified: boolean;
+  walletBalance: number;
+  transactionPin?: string;
 
   otp?: string;
   otpExpiry?: Date;
@@ -18,6 +20,7 @@ export interface IUser extends Document {
   updatedAt: Date;
 
   comparePassword(candidate: string): Promise<boolean>;
+  comparePin(candidate: string): Promise<boolean>;
 }
 
 const UserSchema = new Schema<IUser>(
@@ -44,6 +47,15 @@ const UserSchema = new Schema<IUser>(
       type: Boolean,
       default: false,
     },
+    walletBalance: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+    transactionPin: {
+      type: String,
+      select: false,
+    },
 
     otp: {
       type: String,
@@ -68,20 +80,31 @@ const UserSchema = new Schema<IUser>(
   }
 );
 
-// Hash password before save
+// Hash password and transaction PIN before save
 UserSchema.pre('save', async function () {
-  if (!this.isModified('password')) return;
-  const salt = await bcrypt.genSalt(10);
-  this.password = await bcrypt.hash(this.password, salt);
+  if (this.isModified('password')) {
+    const salt = await bcrypt.genSalt(10);
+    this.password = await bcrypt.hash(this.password, salt);
+  }
+  if (this.isModified('transactionPin') && this.transactionPin) {
+    const salt = await bcrypt.genSalt(10);
+    this.transactionPin = await bcrypt.hash(this.transactionPin, salt);
+  }
 });
 
 UserSchema.methods.comparePassword = async function (candidate: string) {
   return bcrypt.compare(candidate, this.password);
 };
 
+UserSchema.methods.comparePin = async function (candidate: string) {
+  if (!this.transactionPin) return false;
+  return bcrypt.compare(candidate, this.transactionPin);
+};
+
 UserSchema.set('toJSON', {
   transform: (_doc, ret: any) => {
     delete ret.password;
+    delete ret.transactionPin;
     delete ret.otp;
     delete ret.otpExpiry;
     delete ret.resetOtp;

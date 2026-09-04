@@ -22,7 +22,8 @@ interface CarQuery {
 }
 
 // ---------- Helpers ----------
-const isValidObjectId = (id: string) => Types.ObjectId.isValid(id);
+const isValidObjectId = (id: unknown): id is string =>
+  typeof id === 'string' && Types.ObjectId.isValid(id);
 
 // ---------- CREATE ----------
 export const createCar = async (req: Request, res: Response, next: NextFunction) => {
