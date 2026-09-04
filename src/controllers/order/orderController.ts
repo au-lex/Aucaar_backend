@@ -13,7 +13,7 @@ import { AuthRequest } from '../../middleware/authMiddleware';
 
 const isValidObjectId = (id: unknown): id is string => typeof id === 'string' && Types.ObjectId.isValid(id);
 
-// ---------- CREATE ORDER (single car, e.g. "Buy now") ----------
+// ---------- CREATE ORDER
 export const createOrder = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const userId = req.user!.id;
@@ -58,7 +58,7 @@ export const createOrder = async (req: AuthRequest, res: Response, next: NextFun
   }
 };
 
-// ---------- CHECKOUT CART (turn every cart item into an order, then clear cart) ----------
+// ---------- CHECKOUT CART 
 export const checkoutCart = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const userId = req.user!.id;
@@ -103,7 +103,7 @@ export const checkoutCart = async (req: AuthRequest, res: Response, next: NextFu
   }
 };
 
-// ---------- GET MY ORDERS (grouped active/completed, matches the two Flutter tabs) ----------
+// ---------- GET MY ORDERS 
 export const getMyOrders = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const userId = req.user!.id;
@@ -271,3 +271,4 @@ export const cancelOrder = async (req: AuthRequest, res: Response, next: NextFun
     next(err);
   }
 };
+

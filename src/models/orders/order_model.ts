@@ -26,6 +26,29 @@ export interface IOrderReview {
   createdAt: Date;
 }
 
+export type PaymentMethodType =
+  | 'wallet'
+  | 'paypal'
+  | 'google_pay'
+  | 'apple_pay'
+  | 'card'
+  | 'paystack';
+
+export type PaymentStatus = 'unpaid' | 'paid' | 'failed';
+
+// Snapshot of the address/shipping choice at checkout time, so a later edit
+// or deletion of the Address/ShippingMethod doc doesn't change past orders
+export interface IOrderShippingAddress {
+  title: string;
+  address: string;
+}
+
+export interface IOrderShipping {
+  title: string;
+  estArrival: string;
+  price: number;
+}
+
 export interface IOrder extends Document {
   user: Types.ObjectId;
   car: Types.ObjectId;
@@ -37,6 +60,15 @@ export interface IOrder extends Document {
   colorName: string;
   colorHex: string;
   price: number;
+
+  shippingAddress: IOrderShippingAddress;
+  shipping: IOrderShipping;
+  tax: number;
+  totalPrice: number;
+
+  paymentMethod: PaymentMethodType;
+  paymentStatus: PaymentStatus;
+  paystackReference?: string;
 
   status: OrderStatus;
   trackingSteps: ITrackingStep[];
@@ -62,6 +94,23 @@ const OrderReviewSchema = new Schema<IOrderReview>(
     rating: { type: Number, required: true, min: 1, max: 5 },
     review: { type: String, default: '' },
     createdAt: { type: Date, default: Date.now },
+  },
+  { _id: false }
+);
+
+const OrderShippingAddressSchema = new Schema<IOrderShippingAddress>(
+  {
+    title: { type: String, required: true },
+    address: { type: String, required: true },
+  },
+  { _id: false }
+);
+
+const OrderShippingSchema = new Schema<IOrderShipping>(
+  {
+    title: { type: String, required: true },
+    estArrival: { type: String, required: true },
+    price: { type: Number, required: true, min: 0 },
   },
   { _id: false }
 );
@@ -92,6 +141,27 @@ const OrderSchema = new Schema<IOrder>(
       },
     },
     price: { type: Number, required: true, min: 0 },
+
+    shippingAddress: { type: OrderShippingAddressSchema, required: true },
+    shipping: { type: OrderShippingSchema, required: true },
+    tax: { type: Number, required: true, default: 0, min: 0 },
+    totalPrice: { type: Number, required: true, min: 0 },
+
+    paymentMethod: {
+      type: String,
+      enum: ['wallet', 'paypal', 'google_pay', 'apple_pay', 'card', 'paystack'],
+      required: true,
+    },
+    paymentStatus: {
+      type: String,
+      enum: ['unpaid', 'paid', 'failed'],
+      default: 'unpaid',
+    },
+    paystackReference: {
+      type: String,
+      index: true,
+      sparse: true,
+    },
 
     status: {
       type: String,
