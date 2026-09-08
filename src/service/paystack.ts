@@ -46,7 +46,7 @@ export const initializeTransaction = async (
 
   const { data } = await paystackClient.post('/transaction/initialize', {
     email,
-    amount: Math.round(amount * 100), // Paystack expects the smallest currency unit (kobo/cents)
+    amount: Math.round(amount * 100), 
     reference,
     callback_url: callbackUrl,
     metadata,
@@ -71,9 +71,7 @@ export const verifyTransaction = async (reference: string): Promise<PaystackVeri
 };
 
 // ---------- VERIFY WEBHOOK SIGNATURE ----------
-// Paystack signs the raw request body with your secret key (HMAC SHA512) and sends it
-// in the `x-paystack-signature` header. `rawBody` must be the exact bytes Paystack sent -
-// see the note on express.raw() in webhook.routes.ts.
+
 export const isValidPaystackSignature = (rawBody: Buffer, signatureHeader?: string): boolean => {
   if (!signatureHeader) return false;
 

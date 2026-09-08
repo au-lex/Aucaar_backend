@@ -1,9 +1,20 @@
 // utils/sendEmail.ts
 import { Resend } from 'resend';
 
-const resend = new Resend(process.env.RESEND_API_KEY as string);
+let resend: Resend | null = null;
 
-const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || 'noreply@yourdomain.com';
+const getResendClient = (): Resend => {
+  if (!resend) {
+    const apiKey = process.env.RESEND_API_KEY;
+    if (!apiKey) {
+      throw new Error('RESEND_API_KEY is not set in environment variables');
+    }
+    resend = new Resend(apiKey);
+  }
+  return resend;
+};
+
+const getFromEmail = (): string => process.env.RESEND_FROM_EMAIL || 'noreply@yourdomain.com';
 
 export const generateOtp = (): string => {
   return Math.floor(100000 + Math.random() * 900000).toString(); // 6-digit
@@ -31,8 +42,8 @@ export const sendOtpEmail = async (
     </div>
   `;
 
-  const { data, error } = await resend.emails.send({
-    from: FROM_EMAIL,
+  const { data, error } = await getResendClient().emails.send({
+    from: getFromEmail(),
     to,
     subject,
     html,

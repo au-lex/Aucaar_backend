@@ -1,0 +1,1444 @@
+openapi: 3.0.0
+info:
+  title: Aucaar API
+  description: 'Full API collection for the Aucaar car marketplace backend: auth,
+    cars, cart, wishlist, orders, checkout, wallet, Paystack, saved cards, linked
+    accounts, notifications.'
+  version: 1.0.0
+servers:
+- url: http://localhost:3001/api
+  description: Local development
+tags:
+- name: Auth
+- name: Users / Profile
+- name: Cars
+- name: Cart
+- name: Wishlist
+- name: Addresses
+- name: Shipping Methods
+- name: Orders & Checkout
+- name: Wallet & Top-Up
+- name: Saved Cards (Paystack)
+- name: Linked Accounts
+- name: Notifications
+- name: Webhooks (reference)
+paths:
+  /auth/signup:
+    post:
+      tags:
+      - Auth
+      summary: Signup
+      description: Creates an unverified user and emails a 6-digit OTP via Resend.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              example:
+                name: Boniface Paul
+                email: boniface@example.com
+                password: P@ssword123
+      parameters:
+      - name: Content-Type
+        in: header
+        schema:
+          type: string
+        example: application/json
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+      security: []
+  /auth/verify-otp:
+    post:
+      tags:
+      - Auth
+      summary: Verify OTP
+      description: Replace the otp value with the code emailed to the signup address.
+        Saves {{token}} on success.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              example:
+                email: boniface@example.com
+                otp: '123456'
+      parameters:
+      - name: Content-Type
+        in: header
+        schema:
+          type: string
+        example: application/json
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+      security: []
+  /auth/resend-otp:
+    post:
+      tags:
+      - Auth
+      summary: Resend OTP
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              example:
+                email: boniface@example.com
+      parameters:
+      - name: Content-Type
+        in: header
+        schema:
+          type: string
+        example: application/json
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+      security: []
+  /auth/login:
+    post:
+      tags:
+      - Auth
+      summary: Login
+      description: Saves {{token}} on success for use by every other authenticated
+        request.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              example:
+                email: boniface@example.com
+                password: P@ssword123
+      parameters:
+      - name: Content-Type
+        in: header
+        schema:
+          type: string
+        example: application/json
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+      security: []
+  /auth/forgot-password:
+    post:
+      tags:
+      - Auth
+      summary: Forgot Password
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              example:
+                email: boniface@example.com
+      parameters:
+      - name: Content-Type
+        in: header
+        schema:
+          type: string
+        example: application/json
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+      security: []
+  /auth/reset-password:
+    post:
+      tags:
+      - Auth
+      summary: Reset Password
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              example:
+                email: boniface@example.com
+                otp: '123456'
+                newPassword: NewP@ssword123
+      parameters:
+      - name: Content-Type
+        in: header
+        schema:
+          type: string
+        example: application/json
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+      security: []
+  /users/me:
+    get:
+      tags:
+      - Users / Profile
+      summary: Get My Profile
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+    patch:
+      tags:
+      - Users / Profile
+      summary: Update Profile
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              example:
+                name: Boniface Ifebuche Paul
+                nickname: Boniface
+                dateOfBirth: 12/27/1995
+                country: Nigeria
+                phone: +234 815 877 2715
+                gender: Male
+      parameters:
+      - name: Content-Type
+        in: header
+        schema:
+          type: string
+        example: application/json
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /users/security:
+    patch:
+      tags:
+      - Users / Profile
+      summary: Update Security Settings
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              example:
+                rememberMe: true
+                faceId: false
+                biometricId: true
+      parameters:
+      - name: Content-Type
+        in: header
+        schema:
+          type: string
+        example: application/json
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /users/change-password:
+    post:
+      tags:
+      - Users / Profile
+      summary: Change Password
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              example:
+                currentPassword: P@ssword123
+                newPassword: NewP@ssword123
+      parameters:
+      - name: Content-Type
+        in: header
+        schema:
+          type: string
+        example: application/json
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /users/pin:
+    post:
+      tags:
+      - Users / Profile
+      summary: Set / Change Transaction PIN
+      description: Add currentPin too if a PIN is already set, e.g. { currentPin,
+        newPin }.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              example:
+                newPin: '1234'
+      parameters:
+      - name: Content-Type
+        in: header
+        schema:
+          type: string
+        example: application/json
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /cars:
+    post:
+      tags:
+      - Cars
+      summary: Create Car
+      description: Saves {{carId}} on success.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              example:
+                name: BMW M5 Series
+                brand: BMW
+                rating: 4.8
+                reviewCount: 120
+                condition: New
+                price: $171,250
+                imagePath: https://example.com/images/bmw-m5.png
+                positionImages: []
+                galleryImages: []
+                availableColors:
+                - '#C0C0C0'
+                - '#1A1A1A'
+                description: A high performance luxury sedan.
+                storeName: Official Store
+                storeVerified: true
+      parameters:
+      - name: Content-Type
+        in: header
+        schema:
+          type: string
+        example: application/json
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+    get:
+      tags:
+      - Cars
+      summary: Get Cars (search/filter/sort/paginate)
+      parameters:
+      - name: brand
+        in: query
+        schema:
+          type: string
+        example: BMW
+      - name: condition
+        in: query
+        schema:
+          type: string
+        example: New
+      - name: minPrice
+        in: query
+        schema:
+          type: integer
+        example: '50000'
+      - name: maxPrice
+        in: query
+        schema:
+          type: integer
+        example: '200000'
+      - name: search
+        in: query
+        schema:
+          type: string
+        example: M5
+      - name: sortBy
+        in: query
+        schema:
+          type: string
+        example: priceValue
+      - name: order
+        in: query
+        schema:
+          type: string
+        example: asc
+      - name: page
+        in: query
+        schema:
+          type: integer
+        example: '1'
+      - name: limit
+        in: query
+        schema:
+          type: integer
+        example: '20'
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /cars/{carId}:
+    get:
+      tags:
+      - Cars
+      summary: Get Car By Id
+      parameters:
+      - name: carId
+        in: path
+        schema:
+          type: string
+        required: true
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+    patch:
+      tags:
+      - Cars
+      summary: Update Car
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              example:
+                price: $168,000
+      parameters:
+      - name: Content-Type
+        in: header
+        schema:
+          type: string
+        example: application/json
+      - name: carId
+        in: path
+        schema:
+          type: string
+        required: true
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+    delete:
+      tags:
+      - Cars
+      summary: Delete Car
+      parameters:
+      - name: carId
+        in: path
+        schema:
+          type: string
+        required: true
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /cars/{carId}/favorite:
+    patch:
+      tags:
+      - Cars
+      summary: Toggle Favorite
+      requestBody:
+        content: {}
+      parameters:
+      - name: carId
+        in: path
+        schema:
+          type: string
+        required: true
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /cars/favorites:
+    get:
+      tags:
+      - Cars
+      summary: Get Favorites
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /cars/brands:
+    get:
+      tags:
+      - Cars
+      summary: Get Distinct Brands
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /cart:
+    post:
+      tags:
+      - Cart
+      summary: Add To Cart
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              example:
+                carId: '{{carId}}'
+                quantity: 1
+      parameters:
+      - name: Content-Type
+        in: header
+        schema:
+          type: string
+        example: application/json
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+    get:
+      tags:
+      - Cart
+      summary: Get Cart
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+    delete:
+      tags:
+      - Cart
+      summary: Clear Cart
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /cart/{carId}:
+    patch:
+      tags:
+      - Cart
+      summary: Update Cart Item Quantity
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              example:
+                quantity: 2
+      parameters:
+      - name: Content-Type
+        in: header
+        schema:
+          type: string
+        example: application/json
+      - name: carId
+        in: path
+        schema:
+          type: string
+        required: true
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+    delete:
+      tags:
+      - Cart
+      summary: Remove Item From Cart
+      parameters:
+      - name: carId
+        in: path
+        schema:
+          type: string
+        required: true
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /wishlist:
+    post:
+      tags:
+      - Wishlist
+      summary: Add To Wishlist
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              example:
+                carId: '{{carId}}'
+      parameters:
+      - name: Content-Type
+        in: header
+        schema:
+          type: string
+        example: application/json
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+    get:
+      tags:
+      - Wishlist
+      summary: Get Wishlist
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /wishlist/toggle:
+    post:
+      tags:
+      - Wishlist
+      summary: Toggle Wishlist
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              example:
+                carId: '{{carId}}'
+      parameters:
+      - name: Content-Type
+        in: header
+        schema:
+          type: string
+        example: application/json
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /wishlist/{carId}:
+    delete:
+      tags:
+      - Wishlist
+      summary: Remove From Wishlist
+      parameters:
+      - name: carId
+        in: path
+        schema:
+          type: string
+        required: true
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /addresses:
+    post:
+      tags:
+      - Addresses
+      summary: Create Address
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              example:
+                title: Home
+                address: 61480 Sunbrook Park, PC 5679
+                isDefault: true
+      parameters:
+      - name: Content-Type
+        in: header
+        schema:
+          type: string
+        example: application/json
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+    get:
+      tags:
+      - Addresses
+      summary: Get Addresses
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /addresses/{addressId}:
+    patch:
+      tags:
+      - Addresses
+      summary: Update Address
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              example:
+                title: Home (Updated)
+                address: 61480 Sunbrook Park, PC 5679, Suite 2
+      parameters:
+      - name: Content-Type
+        in: header
+        schema:
+          type: string
+        example: application/json
+      - name: addressId
+        in: path
+        schema:
+          type: string
+        required: true
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+    delete:
+      tags:
+      - Addresses
+      summary: Delete Address
+      parameters:
+      - name: addressId
+        in: path
+        schema:
+          type: string
+        required: true
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /addresses/{addressId}/default:
+    patch:
+      tags:
+      - Addresses
+      summary: Set Default Address
+      requestBody:
+        content: {}
+      parameters:
+      - name: addressId
+        in: path
+        schema:
+          type: string
+        required: true
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /shipping-methods:
+    post:
+      tags:
+      - Shipping Methods
+      summary: Create Shipping Method (admin)
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              example:
+                title: Truck
+                icon: truck_fast
+                estArrival: Dec 20-23
+                price: 200
+      parameters:
+      - name: Content-Type
+        in: header
+        schema:
+          type: string
+        example: application/json
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+    get:
+      tags:
+      - Shipping Methods
+      summary: Get Shipping Methods
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /shipping-methods/{shippingMethodId}:
+    patch:
+      tags:
+      - Shipping Methods
+      summary: Update Shipping Method (admin)
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              example:
+                price: 220
+      parameters:
+      - name: Content-Type
+        in: header
+        schema:
+          type: string
+        example: application/json
+      - name: shippingMethodId
+        in: path
+        schema:
+          type: string
+        required: true
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+    delete:
+      tags:
+      - Shipping Methods
+      summary: Delete Shipping Method (admin)
+      parameters:
+      - name: shippingMethodId
+        in: path
+        schema:
+          type: string
+        required: true
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /orders:
+    post:
+      tags:
+      - Orders & Checkout
+      summary: Create Order (Buy Now)
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              example:
+                carId: '{{carId}}'
+                colorName: Silver
+                colorHex: '#C0C0C0'
+                addressId: '{{addressId}}'
+                shippingMethodId: '{{shippingMethodId}}'
+                paymentMethod: wallet
+                tax: 1000
+      parameters:
+      - name: Content-Type
+        in: header
+        schema:
+          type: string
+        example: application/json
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+    get:
+      tags:
+      - Orders & Checkout
+      summary: Get My Orders (Completed)
+      parameters:
+      - name: group
+        in: query
+        schema:
+          type: string
+        example: completed
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /orders/checkout:
+    post:
+      tags:
+      - Orders & Checkout
+      summary: Checkout Cart
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              example:
+                addressId: '{{addressId}}'
+                shippingMethodId: '{{shippingMethodId}}'
+                paymentMethod: wallet
+                tax: 1000
+      parameters:
+      - name: Content-Type
+        in: header
+        schema:
+          type: string
+        example: application/json
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /orders/{orderId}/confirm-payment:
+    post:
+      tags:
+      - Orders & Checkout
+      summary: Confirm Payment (Wallet/PIN)
+      description: 'Only for paymentMethod: ''wallet''. For paystack, use the two
+        requests below instead.'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              example:
+                pin: '1234'
+      parameters:
+      - name: Content-Type
+        in: header
+        schema:
+          type: string
+        example: application/json
+      - name: orderId
+        in: path
+        schema:
+          type: string
+        required: true
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /orders/{orderId}/pay/paystack/init:
+    post:
+      tags:
+      - Orders & Checkout
+      summary: Init Paystack Payment For Order
+      description: Returns authorizationUrl - open it in a browser/webview to complete
+        the card charge, then call Verify below.
+      requestBody:
+        content: {}
+      parameters:
+      - name: orderId
+        in: path
+        schema:
+          type: string
+        required: true
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /orders/{orderId}/pay/paystack/verify:
+    get:
+      tags:
+      - Orders & Checkout
+      summary: Verify Paystack Payment For Order
+      parameters:
+      - name: orderId
+        in: path
+        schema:
+          type: string
+        required: true
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /orders/{orderId}:
+    get:
+      tags:
+      - Orders & Checkout
+      summary: Get Order By Id
+      parameters:
+      - name: orderId
+        in: path
+        schema:
+          type: string
+        required: true
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /orders/{orderId}/status:
+    patch:
+      tags:
+      - Orders & Checkout
+      summary: Update Order Status (admin/ops)
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              example:
+                status: in_delivery
+      parameters:
+      - name: Content-Type
+        in: header
+        schema:
+          type: string
+        example: application/json
+      - name: orderId
+        in: path
+        schema:
+          type: string
+        required: true
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /orders/{orderId}/tracking:
+    patch:
+      tags:
+      - Orders & Checkout
+      summary: Add Tracking Step (admin/ops)
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              example:
+                title: Order is in Packing
+                location: 891 Glen Ridge St. Gainesville, VA 20155
+                date: Dec 15
+                time: 10:25 AM
+      parameters:
+      - name: Content-Type
+        in: header
+        schema:
+          type: string
+        example: application/json
+      - name: orderId
+        in: path
+        schema:
+          type: string
+        required: true
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /orders/{orderId}/review:
+    post:
+      tags:
+      - Orders & Checkout
+      summary: Leave Review
+      description: Only works once order status is 'completed'.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              example:
+                rating: 5
+                review: Amazing car & fast delivery!
+      parameters:
+      - name: Content-Type
+        in: header
+        schema:
+          type: string
+        example: application/json
+      - name: orderId
+        in: path
+        schema:
+          type: string
+        required: true
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /orders/{orderId}/cancel:
+    patch:
+      tags:
+      - Orders & Checkout
+      summary: Cancel Order
+      requestBody:
+        content: {}
+      parameters:
+      - name: orderId
+        in: path
+        schema:
+          type: string
+        required: true
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /wallet:
+    get:
+      tags:
+      - Wallet & Top-Up
+      summary: Get Wallet
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /wallet/top-up:
+    post:
+      tags:
+      - Wallet & Top-Up
+      summary: Start Top Up
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              example:
+                amount: 100000
+                method: card
+      parameters:
+      - name: Content-Type
+        in: header
+        schema:
+          type: string
+        example: application/json
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /wallet/top-up/{topUpTransactionId}/confirm:
+    post:
+      tags:
+      - Wallet & Top-Up
+      summary: Confirm Top Up (PIN)
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              example:
+                pin: '1234'
+      parameters:
+      - name: Content-Type
+        in: header
+        schema:
+          type: string
+        example: application/json
+      - name: topUpTransactionId
+        in: path
+        schema:
+          type: string
+        required: true
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /wallet/top-up/{topUpTransactionId}/pay/paystack/init:
+    post:
+      tags:
+      - Wallet & Top-Up
+      summary: Init Paystack Top Up
+      requestBody:
+        content: {}
+      parameters:
+      - name: topUpTransactionId
+        in: path
+        schema:
+          type: string
+        required: true
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /wallet/top-up/{topUpTransactionId}/pay/paystack/verify:
+    get:
+      tags:
+      - Wallet & Top-Up
+      summary: Verify Paystack Top Up
+      parameters:
+      - name: topUpTransactionId
+        in: path
+        schema:
+          type: string
+        required: true
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /wallet/transactions:
+    get:
+      tags:
+      - Wallet & Top-Up
+      summary: Get Transactions
+      parameters:
+      - name: type
+        in: query
+        schema:
+          type: string
+        example: order_payment
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /wallet/transactions/{transactionId}:
+    get:
+      tags:
+      - Wallet & Top-Up
+      summary: Get Transaction By Id (E-Receipt)
+      parameters:
+      - name: transactionId
+        in: path
+        schema:
+          type: string
+        required: true
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /cards/init:
+    post:
+      tags:
+      - Saved Cards (Paystack)
+      summary: Init Add Card
+      description: Returns authorizationUrl - open Paystack's hosted card form there.
+        Never send raw card/CVV to this API.
+      requestBody:
+        content: {}
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /cards/confirm:
+    post:
+      tags:
+      - Saved Cards (Paystack)
+      summary: Confirm Add Card
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              example:
+                reference: '{{paystackReference}}'
+      parameters:
+      - name: Content-Type
+        in: header
+        schema:
+          type: string
+        example: application/json
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /cards:
+    get:
+      tags:
+      - Saved Cards (Paystack)
+      summary: Get Saved Cards
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /cards/{cardId}/default:
+    patch:
+      tags:
+      - Saved Cards (Paystack)
+      summary: Set Default Card
+      requestBody:
+        content: {}
+      parameters:
+      - name: cardId
+        in: path
+        schema:
+          type: string
+        required: true
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /cards/{cardId}:
+    delete:
+      tags:
+      - Saved Cards (Paystack)
+      summary: Delete Card
+      parameters:
+      - name: cardId
+        in: path
+        schema:
+          type: string
+        required: true
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /linked-accounts:
+    get:
+      tags:
+      - Linked Accounts
+      summary: Get Linked Accounts
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /linked-accounts/connect:
+    post:
+      tags:
+      - Linked Accounts
+      summary: Connect Account
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              example:
+                provider: paypal
+                externalAccountId: paypal-account-123
+      parameters:
+      - name: Content-Type
+        in: header
+        schema:
+          type: string
+        example: application/json
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /linked-accounts/paypal:
+    delete:
+      tags:
+      - Linked Accounts
+      summary: Disconnect Account
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /notifications:
+    get:
+      tags:
+      - Notifications
+      summary: Get Notifications
+      parameters:
+      - name: unreadOnly
+        in: query
+        schema:
+          type: boolean
+        example: 'false'
+      - name: page
+        in: query
+        schema:
+          type: integer
+        example: '1'
+      - name: limit
+        in: query
+        schema:
+          type: integer
+        example: '20'
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+    delete:
+      tags:
+      - Notifications
+      summary: Clear All Notifications
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /notifications/{notificationId}/read:
+    patch:
+      tags:
+      - Notifications
+      summary: Mark Notification As Read
+      requestBody:
+        content: {}
+      parameters:
+      - name: notificationId
+        in: path
+        schema:
+          type: string
+        required: true
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /notifications/read-all:
+    patch:
+      tags:
+      - Notifications
+      summary: Mark All Notifications As Read
+      requestBody:
+        content: {}
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /notifications/{notificationId}:
+    delete:
+      tags:
+      - Notifications
+      summary: Delete Notification
+      parameters:
+      - name: notificationId
+        in: path
+        schema:
+          type: string
+        required: true
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+  /webhooks/paystack:
+    post:
+      tags:
+      - Webhooks (reference)
+      summary: Paystack Webhook (reference only)
+      description: For reference only - Paystack calls this directly with a valid
+        x-paystack-signature header computed from your secret key. Manually POSTing
+        here without that header will be rejected with 401.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              example:
+                event: charge.success
+                data:
+                  reference: order_1234567890_abcd1234
+                  metadata:
+                    type: order_payment
+                    orderId: '{{orderId}}'
+                    userId: ''
+      parameters:
+      - name: Content-Type
+        in: header
+        schema:
+          type: string
+        example: application/json
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json: {}
+      security: []
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+security:
+- bearerAuth: []

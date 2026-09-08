@@ -4,17 +4,32 @@ import bcrypt from 'bcryptjs';
 
 export interface IUser extends Document {
   name: string;
+  nickname?: string;
   email: string;
   password: string;
   isVerified: boolean;
-  walletBalance: number;
-  transactionPin?: string;
+
+  phone?: string;
+  dateOfBirth?: string;
+  country?: string;
+  gender?: string;
+  avatarUrl?: string;
 
   otp?: string;
   otpExpiry?: Date;
 
   resetOtp?: string;
   resetOtpExpiry?: Date;
+
+  walletBalance: number;
+  transactionPin?: string;
+
+  security: {
+    rememberMe: boolean;
+    faceId: boolean;
+    biometricId: boolean;
+    googleAuthEnabled: boolean;
+  };
 
   createdAt: Date;
   updatedAt: Date;
@@ -47,15 +62,13 @@ const UserSchema = new Schema<IUser>(
       type: Boolean,
       default: false,
     },
-    walletBalance: {
-      type: Number,
-      default: 0,
-      min: 0,
-    },
-    transactionPin: {
-      type: String,
-      select: false,
-    },
+
+    nickname: { type: String, trim: true },
+    phone: { type: String, trim: true },
+    dateOfBirth: { type: String }, // stored as-is (e.g. "12/27/1995") to match the Flutter text field
+    country: { type: String, trim: true },
+    gender: { type: String, trim: true },
+    avatarUrl: { type: String },
 
     otp: {
       type: String,
@@ -74,22 +87,41 @@ const UserSchema = new Schema<IUser>(
       type: Date,
       select: false,
     },
+
+    walletBalance: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+    transactionPin: {
+      type: String,
+      select: false,
+    },
+
+    security: {
+      rememberMe: { type: Boolean, default: true },
+      faceId: { type: Boolean, default: false },
+      biometricId: { type: Boolean, default: false },
+      googleAuthEnabled: { type: Boolean, default: false },
+    },
   },
   {
     timestamps: true,
   }
 );
 
-// Hash password and transaction PIN before save
+// Hash password before save
 UserSchema.pre('save', async function () {
-  if (this.isModified('password')) {
-    const salt = await bcrypt.genSalt(10);
-    this.password = await bcrypt.hash(this.password, salt);
-  }
-  if (this.isModified('transactionPin') && this.transactionPin) {
-    const salt = await bcrypt.genSalt(10);
-    this.transactionPin = await bcrypt.hash(this.transactionPin, salt);
-  }
+  if (!this.isModified('password')) return;
+  const salt = await bcrypt.genSalt(10);
+  this.password = await bcrypt.hash(this.password, salt);
+});
+
+
+UserSchema.pre('save', async function () {
+  if (!this.isModified('transactionPin') || !this.transactionPin) return;
+  const salt = await bcrypt.genSalt(10);
+  this.transactionPin = await bcrypt.hash(this.transactionPin, salt);
 });
 
 UserSchema.methods.comparePassword = async function (candidate: string) {
@@ -104,11 +136,11 @@ UserSchema.methods.comparePin = async function (candidate: string) {
 UserSchema.set('toJSON', {
   transform: (_doc, ret: any) => {
     delete ret.password;
-    delete ret.transactionPin;
     delete ret.otp;
     delete ret.otpExpiry;
     delete ret.resetOtp;
     delete ret.resetOtpExpiry;
+    delete ret.transactionPin;
     delete ret.__v;
     return ret;
   },
