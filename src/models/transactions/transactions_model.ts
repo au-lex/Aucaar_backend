@@ -7,13 +7,13 @@ export type TransactionStatus = 'pending' | 'paid' | 'failed';
 export interface ITransaction extends Document {
   user: Types.ObjectId;
   type: TransactionType;
-  title: string; // "Top Up Wallet" or the car name, matches the Flutter list item title
+  title: string; // "Top Up Wallet" 
   amount: number;
   method: string; // 'wallet' | 'paypal' | 'google_pay' | 'apple_pay' | 'card'
   status: TransactionStatus;
-  transactionId: string; // human-readable receipt id, e.g. "SK7263727399"
+  transactionId: string; 
 
-  order?: Types.ObjectId; // set for type === 'order_payment'
+  order?: Types.ObjectId; 
   imageUrl?: string; // car image, for the transaction list icon
   paystackReference?: string;
 

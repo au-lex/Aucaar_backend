@@ -8,7 +8,6 @@ export type OrderStatus =
   | 'completed'
   | 'cancelled';
 
-// Statuses shown under the Flutter app's "Active" tab vs "Completed" tab
 export const ACTIVE_STATUSES: OrderStatus[] = ['pending', 'processing', 'in_delivery'];
 export const COMPLETED_STATUSES: OrderStatus[] = ['completed'];
 
@@ -36,8 +35,7 @@ export type PaymentMethodType =
 
 export type PaymentStatus = 'unpaid' | 'paid' | 'failed';
 
-// Snapshot of the address/shipping choice at checkout time, so a later edit
-// or deletion of the Address/ShippingMethod doc doesn't change past orders
+
 export interface IOrderShippingAddress {
   title: string;
   address: string;
@@ -53,8 +51,6 @@ export interface IOrder extends Document {
   user: Types.ObjectId;
   car: Types.ObjectId;
 
-  // Snapshot fields captured at order time so the order stays accurate
-  // even if the underlying Car listing changes later
   name: string;
   imageUrl: string;
   colorName: string;
@@ -185,8 +181,7 @@ const OrderSchema = new Schema<IOrder>(
   }
 );
 
-// The Flutter UI reads trackingSteps[0] as the current/most-recent status label,
-// so new steps are unshifted to the front (see addTrackingStep in the controller)
+
 OrderSchema.methods.currentStep = function (this: IOrder) {
   return this.trackingSteps[0];
 };
