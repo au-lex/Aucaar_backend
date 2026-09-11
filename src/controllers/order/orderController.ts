@@ -9,18 +9,47 @@ import {
 } from '../../models/orders/order_model';
 import { CarModel } from '../../models/vehicles/vehicle_model';
 import { CartModel } from '../../models/cart/cart_model';
+import { UserModel } from '../../models/users/user_model';
+import { TransactionModel, generateTransactionId } from '../../models/transactions/transactions_model';
 import { AuthRequest } from '../../middleware/authMiddleware';
 
 const isValidObjectId = (id: unknown): id is string => typeof id === 'string' && Types.ObjectId.isValid(id);
+
+// Recomputes a car's rating/reviewCount from every order review left against it
+const syncCarRating = async (carId: Types.ObjectId) => {
+  const stats = await OrderModel.aggregate([
+    { $match: { car: carId, review: { $exists: true } } },
+    {
+      $group: {
+        _id: '$car',
+        avgRating: { $avg: '$review.rating' },
+        count: { $sum: 1 },
+      },
+    },
+  ]);
+
+  const { avgRating = 0, count = 0 } = stats[0] ?? {};
+
+  await CarModel.findByIdAndUpdate(carId, {
+    rating: Math.round(avgRating * 10) / 10,
+    reviewCount: count,
+  });
+};
 
 // ---------- CREATE ORDER
 export const createOrder = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const userId = req.user!.id;
-    const { carId, colorName, colorHex } = req.body;
+    const { carId, colorName, colorHex, shippingAddress, shipping, tax = 0 } = req.body;
 
     if (!carId || !isValidObjectId(carId)) {
       return res.status(400).json({ success: false, message: 'Valid carId is required' });
+    }
+    if (!shippingAddress?.title || !shippingAddress?.address) {
+      return res.status(400).json({ success: false, message: 'shippingAddress is required' });
+    }
+    if (!shipping?.title || !shipping?.estArrival) {
+      return res.status(400).json({ success: false, message: 'shipping option is required' });
     }
 
     const car = await CarModel.findById(carId);
@@ -29,6 +58,8 @@ export const createOrder = async (req: AuthRequest, res: Response, next: NextFun
     }
 
     const priceValue = parseFloat(car.price.replace(/[^0-9.]/g, '')) || 0;
+    const shippingPrice = typeof shipping.price === 'number' ? shipping.price : 0;
+    const totalPrice = priceValue + tax + shippingPrice;
 
     const order = await OrderModel.create({
       user: userId,
@@ -38,6 +69,12 @@ export const createOrder = async (req: AuthRequest, res: Response, next: NextFun
       colorName: colorName || 'Default',
       colorHex: colorHex || (car.availableColors[0] ?? '#CCCCCC'),
       price: priceValue,
+      shippingAddress,
+      shipping: { ...shipping, price: shippingPrice },
+      tax,
+      totalPrice,
+      paymentMethod: 'wallet',
+      paymentStatus: 'unpaid',
       status: 'pending',
       trackingSteps: [
         {
@@ -58,20 +95,31 @@ export const createOrder = async (req: AuthRequest, res: Response, next: NextFun
   }
 };
 
-// ---------- CHECKOUT CART 
+// ---------- CHECKOUT CART
 export const checkoutCart = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const userId = req.user!.id;
+    const { shippingAddress, shipping, tax = 0 } = req.body;
+
+    if (!shippingAddress?.title || !shippingAddress?.address) {
+      return res.status(400).json({ success: false, message: 'shippingAddress is required' });
+    }
+    if (!shipping?.title || !shipping?.estArrival) {
+      return res.status(400).json({ success: false, message: 'shipping option is required' });
+    }
 
     const cart = await CartModel.findOne({ user: userId }).populate('items.car');
     if (!cart || cart.items.length === 0) {
       return res.status(400).json({ success: false, message: 'Cart is empty' });
     }
 
+    const shippingPrice = typeof shipping.price === 'number' ? shipping.price : 0;
+
     const orders = await Promise.all(
       cart.items.map(async (item) => {
         const car = item.car as any;
         const priceValue = parseFloat((car.price as string).replace(/[^0-9.]/g, '')) || 0;
+        const itemPrice = priceValue * item.quantity;
 
         return OrderModel.create({
           user: userId,
@@ -80,7 +128,13 @@ export const checkoutCart = async (req: AuthRequest, res: Response, next: NextFu
           imageUrl: car.imagePath,
           colorName: car.availableColors?.[0] ? 'Default' : 'Default',
           colorHex: car.availableColors?.[0] ?? '#CCCCCC',
-          price: priceValue * item.quantity,
+          price: itemPrice,
+          shippingAddress,
+          shipping: { ...shipping, price: shippingPrice },
+          tax,
+          totalPrice: itemPrice + tax + shippingPrice,
+          paymentMethod: 'wallet',
+          paymentStatus: 'unpaid',
           status: 'pending',
           trackingSteps: [
             {
@@ -103,7 +157,7 @@ export const checkoutCart = async (req: AuthRequest, res: Response, next: NextFu
   }
 };
 
-// ---------- GET MY ORDERS 
+// ---------- GET MY ORDERS
 export const getMyOrders = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const userId = req.user!.id;
@@ -198,7 +252,6 @@ export const addTrackingStep = async (req: AuthRequest, res: Response, next: Nex
       return res.status(404).json({ success: false, message: 'Order not found' });
     }
 
-    // Newest step goes first, matching how the Flutter UI displays trackingSteps[0] as current
     order.trackingSteps.unshift({ title, location, date, time, createdAt: new Date() });
     await order.save();
 
@@ -236,6 +289,9 @@ export const leaveReview = async (req: AuthRequest, res: Response, next: NextFun
     order.review = { rating, review: review || '', createdAt: new Date() };
     await order.save();
 
+    // Keep the car's aggregate rating/reviewCount in sync with order reviews
+    await syncCarRating(order.car);
+
     return res.status(200).json({ success: true, data: order });
   } catch (err) {
     next(err);
@@ -272,3 +328,76 @@ export const cancelOrder = async (req: AuthRequest, res: Response, next: NextFun
   }
 };
 
+// ---------- CONFIRM PAYMENT (PIN entry -> "Order Successful"; always debits wallet) ----------
+export const confirmPayment = async (req: AuthRequest, res: Response, next: NextFunction) => {
+  try {
+    const userId = req.user!.id;
+    const { id } = req.params;
+    const { pin } = req.body;
+
+    if (!isValidObjectId(id)) {
+      return res.status(400).json({ success: false, message: 'Invalid order id' });
+    }
+    if (!pin || typeof pin !== 'string') {
+      return res.status(400).json({ success: false, message: 'pin is required' });
+    }
+
+    const order = await OrderModel.findOne({ _id: id, user: userId });
+    if (!order) {
+      return res.status(404).json({ success: false, message: 'Order not found' });
+    }
+    if (order.paymentStatus === 'paid') {
+      return res.status(400).json({ success: false, message: 'Order already paid' });
+    }
+
+    const user = await UserModel.findById(userId).select('+transactionPin');
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+    if (!user.transactionPin) {
+      return res
+        .status(400)
+        .json({ success: false, message: 'No transaction PIN set on this account' });
+    }
+
+    const pinMatches = await user.comparePin(pin);
+    if (!pinMatches) {
+      return res.status(401).json({ success: false, message: 'Incorrect PIN' });
+    }
+
+    if (user.walletBalance < order.totalPrice) {
+      return res.status(400).json({
+        success: false,
+        code: 'INSUFFICIENT_WALLET_BALANCE',
+        message: 'Insufficient wallet balance. Please fund your wallet to continue.',
+        data: { balance: user.walletBalance, required: order.totalPrice },
+      });
+    }
+
+    user.walletBalance -= order.totalPrice;
+    await user.save();
+
+    order.paymentStatus = 'paid';
+    order.status = 'processing';
+    await order.save();
+
+    await TransactionModel.create({
+      user: userId,
+      type: 'order_payment',
+      title: order.name,
+      amount: order.totalPrice,
+      method: 'wallet',
+      status: 'paid',
+      transactionId: generateTransactionId(),
+      order: order._id,
+      imageUrl: order.imageUrl,
+    });
+
+    return res.status(200).json({
+      success: true,
+      data: { order, balance: user.walletBalance },
+    });
+  } catch (err) {
+    next(err);
+  }
+};

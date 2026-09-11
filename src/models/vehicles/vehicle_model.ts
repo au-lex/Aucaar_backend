@@ -10,11 +10,12 @@ export interface ICar extends Document {
   imagePath: string;
   positionImages: string[];
   galleryImages: string[];
-  availableColors: string[]; 
+  availableColors: string[];
   description: string;
   storeName: string;
   storeVerified: boolean;
   isFavorite: boolean;
+  isTopDeal: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -75,11 +76,11 @@ const CarSchema = new Schema<ICar>(
         message: 'availableColors must be hex color strings (e.g. #E8E8E8)',
       },
     },
-    description: {
-      type: String,
-      default:
-        'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore ',
-    },
+description: {
+  type: String,
+  required: true,
+  trim: true,
+},
     storeName: {
       type: String,
       default: 'Official Store',
@@ -92,13 +93,17 @@ const CarSchema = new Schema<ICar>(
       type: Boolean,
       default: false,
     },
+    isTopDeal: {
+      type: Boolean,
+      default: false,
+      index: true,
+    },
   },
   {
     timestamps: true,
   }
 );
 
-// Virtuals to mirror the Dart getters
 CarSchema.virtual('priceValue').get(function (this: ICar) {
   const numeric = this.price.replace(/[^0-9.]/g, '');
   return parseFloat(numeric) || 0;
