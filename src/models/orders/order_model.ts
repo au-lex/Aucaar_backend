@@ -25,16 +25,9 @@ export interface IOrderReview {
   createdAt: Date;
 }
 
-export type PaymentMethodType =
-  | 'wallet'
-  | 'paypal'
-  | 'google_pay'
-  | 'apple_pay'
-  | 'card'
-  | 'paystack';
+export type PaymentMethodType = 'wallet';
 
 export type PaymentStatus = 'unpaid' | 'paid' | 'failed';
-
 
 export interface IOrderShippingAddress {
   title: string;
@@ -64,7 +57,6 @@ export interface IOrder extends Document {
 
   paymentMethod: PaymentMethodType;
   paymentStatus: PaymentStatus;
-  paystackReference?: string;
 
   status: OrderStatus;
   trackingSteps: ITrackingStep[];
@@ -145,18 +137,14 @@ const OrderSchema = new Schema<IOrder>(
 
     paymentMethod: {
       type: String,
-      enum: ['wallet', 'paypal', 'google_pay', 'apple_pay', 'card', 'paystack'],
+      enum: ['wallet'],
       required: true,
+      default: 'wallet',
     },
     paymentStatus: {
       type: String,
       enum: ['unpaid', 'paid', 'failed'],
       default: 'unpaid',
-    },
-    paystackReference: {
-      type: String,
-      index: true,
-      sparse: true,
     },
 
     status: {
@@ -180,7 +168,6 @@ const OrderSchema = new Schema<IOrder>(
     timestamps: true,
   }
 );
-
 
 OrderSchema.methods.currentStep = function (this: IOrder) {
   return this.trackingSteps[0];
