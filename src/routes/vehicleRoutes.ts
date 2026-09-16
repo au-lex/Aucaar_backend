@@ -12,6 +12,7 @@ import {
   toggleTopDeal,
   getTopDeals,
   getBrands,
+  getCarsByBrand,
 } from '../controllers/vehicles/vehicleController';
 
 const router = Router();
@@ -21,7 +22,6 @@ const carImageFields = upload.fields([
   { name: 'positionImages', maxCount: 10 },
   { name: 'galleryImages', maxCount: 10 },
 ]);
-
 
 const handleCarUploads = (req: Request, res: Response, next: NextFunction) => {
   carImageFields(req, res, (err: any) => {
@@ -33,6 +33,7 @@ const handleCarUploads = (req: Request, res: Response, next: NextFunction) => {
 };
 
 router.get('/brands', getBrands);
+router.get('/brand/:brand', getCarsByBrand);
 router.get('/favorites', getFavorites);
 router.get('/top-deals', getTopDeals);
 

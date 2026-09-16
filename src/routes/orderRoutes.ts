@@ -19,6 +19,7 @@ router.use(protect);
 
 router.post('/', createOrder);
 router.post('/checkout', checkoutCart);
+router.get('/', getMyOrders);
 router.post('/:id/confirm-payment', confirmPayment); 
 router.get('/:id', getOrderById);
 router.patch('/:id/status', updateOrderStatus);

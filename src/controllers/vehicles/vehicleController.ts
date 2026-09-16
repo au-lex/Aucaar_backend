@@ -3,6 +3,7 @@ import { Request, Response, NextFunction } from 'express';
 import { Types } from 'mongoose';
 import { CarModel, ICar } from '../../models/vehicles/vehicle_model';
 import { uploadBufferToCloudinary, uploadManyToCloudinary } from '../../service/cloudinaryUpload';
+import { OrderModel } from '../../models/orders/order_model'; 
 
 interface CarQuery {
   brand?: string;
@@ -198,11 +199,11 @@ export const getCars = async (
 };
 
 // ---------- GET ONE ----------
-export const getCarById = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
+
+
+
+
+export const getCarById = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
     if (!isValidObjectId(id)) {
@@ -214,7 +215,16 @@ export const getCarById = async (
       return res.status(404).json({ success: false, message: 'Car not found' });
     }
 
-    return res.status(200).json({ success: true, data: car });
+    const reviews = await OrderModel.find({ car: id, review: { $exists: true } })
+      .select('review user')
+      .populate('user', 'name avatar') // adjust field names to match UserModel
+      .sort({ 'review.createdAt': -1 })
+      .limit(20);
+
+    return res.status(200).json({
+      success: true,
+      data: { ...car.toObject(), reviews },
+    });
   } catch (err) {
     next(err);
   }
@@ -353,6 +363,48 @@ export const getBrands = async (req: Request, res: Response, next: NextFunction)
   try {
     const brands = await CarModel.distinct('brand');
     return res.status(200).json({ success: true, data: brands });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// ---------- GET CARS BY BRAND ----------
+
+export const getCarsByBrand = async (
+  req: Request<{ brand: string }, {}, {}, { page?: string; limit?: string }>,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { brand } = req.params;
+    const { page = '1', limit = '20' } = req.query;
+
+    if (!brand?.trim()) {
+      return res.status(400).json({ success: false, message: 'brand is required' });
+    }
+
+    const pageNum = Math.max(parseInt(page, 10) || 1, 1);
+    const limitNum = Math.min(Math.max(parseInt(limit, 10) || 20, 1), 100);
+    const skip = (pageNum - 1) * limitNum;
+
+    const filter = { brand: new RegExp(`^${brand}$`, 'i') };
+
+    const [cars, total] = await Promise.all([
+      CarModel.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limitNum),
+      CarModel.countDocuments(filter),
+    ]);
+
+    return res.status(200).json({
+      success: true,
+      data: cars,
+      message: total === 0 ? `No cars found for brand '${brand}'` : undefined,
+      pagination: {
+        page: pageNum,
+        limit: limitNum,
+        total,
+        totalPages: Math.ceil(total / limitNum),
+      },
+    });
   } catch (err) {
     next(err);
   }

@@ -13,8 +13,8 @@ const router = Router();
 router.use(protect);
 
 router.get('/', getShippingMethods);
-router.post('/', createShippingMethod); // admin/ops — see note below
-router.patch('/:id', updateShippingMethod); // admin/ops
+router.post('/', createShippingMethod); 
+router.patch('/:id', updateShippingMethod); 
 router.delete('/:id', deleteShippingMethod); // admin/ops
 
 export default router;
