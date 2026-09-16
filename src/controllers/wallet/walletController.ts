@@ -12,8 +12,6 @@ import { AuthRequest } from '../../middleware/authMiddleware';
 const isValidObjectId = (id: unknown): id is string =>
   typeof id === 'string' && Types.ObjectId.isValid(id);
 
-const TOP_UP_METHODS = ['paypal', 'google_pay', 'apple_pay', 'card'];
-
 // ---------- GET WALLET (balance + recent transactions, feeds EWalletPage) ----------
 export const getWallet = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
@@ -41,19 +39,14 @@ export const getWallet = async (req: AuthRequest, res: Response, next: NextFunct
   }
 };
 
-// ---------- START TOP UP (amount + method chosen, before PIN entry) ----------
+// ---------- START TOP UP (amount chosen, before redirecting to Paystack) ----------
 export const startTopUp = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const userId = req.user!.id;
-    const { amount, method } = req.body;
+    const { amount } = req.body;
 
     if (typeof amount !== 'number' || amount <= 0) {
       return res.status(400).json({ success: false, message: 'amount must be a positive number' });
-    }
-    if (!TOP_UP_METHODS.includes(method)) {
-      return res
-        .status(400)
-        .json({ success: false, message: `method must be one of: ${TOP_UP_METHODS.join(', ')}` });
     }
 
     const transaction = await TransactionModel.create({
@@ -61,67 +54,12 @@ export const startTopUp = async (req: AuthRequest, res: Response, next: NextFunc
       type: 'top_up' as TransactionType,
       title: 'Top Up Wallet',
       amount,
-      method,
+      method: 'paystack',
       status: 'pending',
       transactionId: generateTransactionId(),
     });
 
     return res.status(201).json({ success: true, data: transaction });
-  } catch (err) {
-    next(err);
-  }
-};
-
-// ---------- CONFIRM TOP UP (PIN entry -> TopUpSuccessDialog) ----------
-export const confirmTopUp = async (req: AuthRequest, res: Response, next: NextFunction) => {
-  try {
-    const userId = req.user!.id;
-    const { id } = req.params;
-    const { pin } = req.body;
-
-    if (!isValidObjectId(id)) {
-      return res.status(400).json({ success: false, message: 'Invalid transaction id' });
-    }
-    if (!pin || typeof pin !== 'string') {
-      return res.status(400).json({ success: false, message: 'pin is required' });
-    }
-
-    const transaction = await TransactionModel.findOne({
-      _id: id,
-      user: userId,
-      type: 'top_up',
-    });
-    if (!transaction) {
-      return res.status(404).json({ success: false, message: 'Transaction not found' });
-    }
-    if (transaction.status === 'paid') {
-      return res.status(400).json({ success: false, message: 'Transaction already completed' });
-    }
-
-    const user = await UserModel.findById(userId).select('+transactionPin');
-    if (!user?.transactionPin) {
-      return res
-        .status(400)
-        .json({ success: false, message: 'No transaction PIN set on this account' });
-    }
-
-    const pinMatches = await user.comparePin(pin);
-    if (!pinMatches) {
-      return res.status(401).json({ success: false, message: 'Incorrect PIN' });
-    }
-
-    // Stub: a real integration would confirm with PayPal/Google Pay/Apple Pay/card here
-    // before crediting the wallet.
-    user.walletBalance += transaction.amount;
-    await user.save();
-
-    transaction.status = 'paid';
-    await transaction.save();
-
-    return res.status(200).json({
-      success: true,
-      data: { transaction, balance: user.walletBalance },
-    });
   } catch (err) {
     next(err);
   }

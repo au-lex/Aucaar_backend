@@ -27,7 +27,7 @@ export const getMe = async (req: AuthRequest, res: Response, next: NextFunction)
 };
 
 // ---------- SET / CHANGE TRANSACTION PIN ----------
-// First-time set: only `newPin` required. Changing an existing PIN: also requires `currentPin`.
+
 export const setTransactionPin = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const userId = req.user!.id;
@@ -64,8 +64,7 @@ export const setTransactionPin = async (req: AuthRequest, res: Response, next: N
 };
 
 // ---------- UPDATE PROFILE (EditProfilePage: name, nickname, dob, country, phone, gender, avatar) ----------
-// Email is deliberately not editable here — changing it should go through a dedicated
-// re-verification flow (OTP to the new address) rather than a silent field update.
+
 export const updateProfile = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const userId = req.user!.id;

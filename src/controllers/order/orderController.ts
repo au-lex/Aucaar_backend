@@ -15,6 +15,14 @@ import { AuthRequest } from '../../middleware/authMiddleware';
 
 const isValidObjectId = (id: unknown): id is string => typeof id === 'string' && Types.ObjectId.isValid(id);
 
+const STATUS_LABELS: Record<OrderStatus, string> = {
+  pending: 'Order Pending',
+  processing: 'Payment Verified',
+  in_delivery: 'Out for Delivery',
+  completed: 'Delivered',
+  cancelled: 'Order Cancelled',
+};
+
 // Recomputes a car's rating/reviewCount from every order review left against it
 const syncCarRating = async (carId: Types.ObjectId) => {
   const stats = await OrderModel.aggregate([
@@ -201,10 +209,11 @@ export const getOrderById = async (req: AuthRequest, res: Response, next: NextFu
 };
 
 // ---------- UPDATE ORDER STATUS (admin/ops action) ----------
+
 export const updateOrderStatus = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
-    const { status } = req.body as { status: OrderStatus };
+    const { status, location } = req.body as { status: OrderStatus; location?: string };
 
     if (!isValidObjectId(id)) {
       return res.status(400).json({ success: false, message: 'Invalid order id' });
@@ -221,10 +230,20 @@ export const updateOrderStatus = async (req: AuthRequest, res: Response, next: N
       return res.status(400).json({ success: false, message: 'Invalid status value' });
     }
 
-    const order = await OrderModel.findByIdAndUpdate(id, { status }, { new: true });
+    const order = await OrderModel.findById(id);
     if (!order) {
       return res.status(404).json({ success: false, message: 'Order not found' });
     }
+
+    order.status = status;
+    order.trackingSteps.unshift({
+      title: STATUS_LABELS[status],
+      location: location || 'Logistics',
+      date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+      time: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
+      createdAt: new Date(),
+    });
+    await order.save();
 
     return res.status(200).json({ success: true, data: order });
   } catch (err) {
@@ -232,7 +251,7 @@ export const updateOrderStatus = async (req: AuthRequest, res: Response, next: N
   }
 };
 
-// ---------- ADD TRACKING STEP (admin/ops action, drives the Track Order screen) ----------
+// ---------- ADD TRACKING STEP (admin/ops action — for custom notes without changing status) ----------
 export const addTrackingStep = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;

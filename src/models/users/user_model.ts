@@ -65,7 +65,7 @@ const UserSchema = new Schema<IUser>(
 
     nickname: { type: String, trim: true },
     phone: { type: String, trim: true },
-    dateOfBirth: { type: String }, // stored as-is (e.g. "12/27/1995") to match the Flutter text field
+    dateOfBirth: { type: String }, 
     country: { type: String, trim: true },
     gender: { type: String, trim: true },
     avatarUrl: { type: String },
